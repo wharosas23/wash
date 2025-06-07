@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h> 
 
 #define MAX_INPUT 256
 
@@ -16,18 +18,44 @@ void print_help(){
 
 void commandInput(int argc, char *argv[]) {
     
-    if (strncmp(argv[0], "echo", 4) == 0) {
-        printf("You typed: %s\n", argv[1]);
-    } else if (strncmp(argv[0], "pwd", 3) == 0) {
-        printf("Current working directory command is not implemented yet.\n");
-    } else if (strncmp(argv[0], "cd", 2) == 0) {
-        printf("Change directory command is not implemented yet.\n");
-    } else if (strncmp(argv[0], "setpath", 7) == 0) {
+    if (strcmp(argv[0], "echo") == 0) {
+        for (int i = 1; i < argc; i++) {
+            printf("%s ", argv[i]);
+        }
+        printf("\n");
+    } else if (strcmp(argv[0], "pwd") == 0) {
+        char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("%s\n", cwd);
+    } else {
+        perror("getcwd error");
+    }
+    } else if (strcmp(argv[0], "cd") == 0) {
+    const char *target_dir;
+
+    if (argc == 1) {
+        // No argument → use HOME
+        target_dir = getenv("HOME");
+        if (target_dir == NULL) {
+            fprintf(stderr, "wash: HOME environment variable not set\n");
+            return;
+        }
+    } else {
+        // Argument provided → use it
+        target_dir = argv[1];
+    }
+
+    // Try to change directory
+    if (chdir(target_dir) != 0) {
+        fprintf(stderr, "%s not found\n", target_dir);
+    }
+
+} else if (strcmp(argv[0], "setpath") == 0) {
         printf("Set path command is not implemented yet.\n");
-    } else if (strncmp(argv[0], "help", 4) == 0) {
+    } else if (strcmp(argv[0], "help") == 0) {
         print_help();
     } else {
-        printf("%s  command not found\n", argv[0]);
+        printf("%s command not found\n", argv[0]);
     }
 
 }
