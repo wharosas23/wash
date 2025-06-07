@@ -91,6 +91,43 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
+        char *redir_ptr = strchr(input, '>');  // Look for >
+
+char *command_part = input;
+char *filename = NULL;
+
+if (redir_ptr != NULL) {
+    *redir_ptr = '\0';      // Split string at >
+    redir_ptr++;
+
+    // Skip any leading spaces before filename
+    while (*redir_ptr == ' ') redir_ptr++;
+
+    if (*redir_ptr == '\0') {
+        fprintf(stderr, "wash: missing filename after '>'\n");
+        continue;
+    }
+
+    filename = redir_ptr;
+}
+FILE *stdout_backup = NULL;
+FILE *stderr_backup = NULL;
+
+if (filename != NULL) {
+    char output_file[512];
+    char error_file[512];
+    snprintf(output_file, sizeof(output_file), "%s.output", filename);
+    snprintf(error_file, sizeof(error_file), "%s.error", filename);
+
+    // Save original stdout and stderr
+    stdout_backup = fdopen(dup(fileno(stdout)), "w");
+    stderr_backup = fdopen(dup(fileno(stderr)), "w");
+
+    freopen(output_file, "w", stdout);
+    freopen(error_file, "w", stderr);
+}
+
+
         // Tokenize input into arguments
         char *args[MAX_INPUT / 2 + 1]; // Enough for simple tokenization
         int arg_count = 0;
@@ -103,6 +140,16 @@ int main(int argc, char *argv[]) {
 
         if (arg_count > 0) {
             commandInput(arg_count, args);
+            if (filename != NULL) {
+    fflush(stdout);
+    fflush(stderr);
+    // Restore stdout and stderr
+    dup2(fileno(stdout_backup), fileno(stdout));
+    dup2(fileno(stderr_backup), fileno(stderr));
+    fclose(stdout_backup);
+    fclose(stderr_backup);
+}
+
         }
     }
 
