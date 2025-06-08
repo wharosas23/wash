@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h> 
+#include <unistd.h>
 
 #define MAX_INPUT 256
 
 // Function that prints out help information
-void print_help(){
+void print_help()
+{
     printf("\nWelcome to the Wash shell! Here are some commands you can use:\n");
     printf("    exit        - Exit the shell (NOT READY)\n");
     printf("    echo        - Print arguments to the console (NOT READY)\n");
@@ -16,58 +17,80 @@ void print_help(){
     printf("    help        - Show the help message\n\n");
 }
 
-void commandInput(int argc, char *argv[]) {
-    
-    if (strcmp(argv[0], "echo") == 0) {
-        for (int i = 1; i < argc; i++) {
+void commandInput(int argc, char *argv[])
+{
+
+    if (strcmp(argv[0], "echo") == 0)
+    {
+        for (int i = 1; i < argc; i++)
+        {
             printf("%s ", argv[i]);
         }
         printf("\n");
-    } else if (strcmp(argv[0], "pwd") == 0) {
+    }
+    else if (strcmp(argv[0], "pwd") == 0)
+    {
         char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        printf("%s\n", cwd);
-    } else {
-        perror("getcwd error");
-    }
-    } else if (strcmp(argv[0], "cd") == 0) {
-    const char *target_dir;
-
-    if (argc == 1) {
-        // No argument → use HOME
-        target_dir = getenv("HOME");
-        if (target_dir == NULL) {
-            fprintf(stderr, "wash: HOME environment variable not set\n");
-            return;
+        if (getcwd(cwd, sizeof(cwd)) != NULL)
+        {
+            printf("%s\n", cwd);
         }
-    } else {
-        // Argument provided → use it
-        target_dir = argv[1];
+        else
+        {
+            perror("getcwd error");
+        }
     }
+    else if (strcmp(argv[0], "cd") == 0)
+    {
+        const char *target_dir;
 
-    // Try to change directory
-    if (chdir(target_dir) != 0) {
-        fprintf(stderr, "%s not found\n", target_dir);
+        if (argc == 1)
+        {
+            // No argument → use HOME
+            target_dir = getenv("HOME");
+            if (target_dir == NULL)
+            {
+                fprintf(stderr, "wash: HOME environment variable not set\n");
+                return;
+            }
+        }
+        else
+        {
+            // Argument provided → use it
+            target_dir = argv[1];
+        }
+
+        // Try to change directory
+        if (chdir(target_dir) != 0)
+        {
+            fprintf(stderr, "%s not found\n", target_dir);
+        }
     }
-
-} else if (strcmp(argv[0], "setpath") == 0) {
+    else if (strcmp(argv[0], "setpath") == 0)
+    {
         printf("Set path command is not implemented yet.\n");
-    } else if (strcmp(argv[0], "help") == 0) {
+    }
+    else if (strcmp(argv[0], "help") == 0)
+    {
         print_help();
-    } else {
+    }
+    else
+    {
         printf("%s command not found\n", argv[0]);
     }
-
 }
 
 // Main function that handles the shell loop
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
     // If the user provided the -h flag in the command-line argument,
-    // the program prints out the help message and exits 
-    if (argc > 1) {
+    // the program prints out the help message and exits
+    if (argc > 1)
+    {
 
-        if (strcmp(argv[1], "-h") == 0) {
+        if (strcmp(argv[1], "-h") == 0)
+        {
             print_help();
             return 0;
         }
@@ -76,8 +99,9 @@ int main(int argc, char *argv[]) {
     // Begin shell loop
     char input[MAX_INPUT];
 
-    while (1) {
-        
+    while (1)
+    {
+
         printf("wash> ");
         fflush(stdout);
 
@@ -86,70 +110,81 @@ int main(int argc, char *argv[]) {
         input[strcspn(input, "\n")] = '\0';
 
         // If the user provided no input, then the program outputs a message and exits
-        if (strcmp(input, "exit") == 0) {
+        if (strcmp(input, "exit") == 0)
+        {
             printf("\nGoodbye!\n\n");
             return 0;
         }
 
-        char *redir_ptr = strchr(input, '>');  // Look for >
+        //ADDITION FOR REDIRECTION 
+        char *redir_ptr = strchr(input, '>'); // Look for >
 
-char *command_part = input;
-char *filename = NULL;
+        char *command_part = input;
+        char *filename = NULL;
 
-if (redir_ptr != NULL) {
-    *redir_ptr = '\0';      // Split string at >
-    redir_ptr++;
+        if (redir_ptr != NULL)
+        {
+            *redir_ptr = '\0'; // Split string at >
+            redir_ptr++;
 
-    // Skip any leading spaces before filename
-    while (*redir_ptr == ' ') redir_ptr++;
+            // Skip any leading spaces before filename
+            while (*redir_ptr == ' ')
+                redir_ptr++;
 
-    if (*redir_ptr == '\0') {
-        fprintf(stderr, "wash: missing filename after '>'\n");
-        continue;
-    }
+            if (*redir_ptr == '\0')
+            {
+                fprintf(stderr, "wash: missing filename after '>'\n");
+                continue;
+            }
 
-    filename = redir_ptr;
-}
-FILE *stdout_backup = NULL;
-FILE *stderr_backup = NULL;
+            filename = redir_ptr;
+        }
+        FILE *stdout_backup = NULL;
+        FILE *stderr_backup = NULL;
 
-if (filename != NULL) {
-    char output_file[512];
-    char error_file[512];
-    snprintf(output_file, sizeof(output_file), "%s.output", filename);
-    snprintf(error_file, sizeof(error_file), "%s.error", filename);
+        if (filename != NULL)
+        {
+            char output_file[512];
+            char error_file[512];
+            snprintf(output_file, sizeof(output_file), "%s.output", filename);
+            snprintf(error_file, sizeof(error_file), "%s.error", filename);
 
-    // Save original stdout and stderr
-    stdout_backup = fdopen(dup(fileno(stdout)), "w");
-    stderr_backup = fdopen(dup(fileno(stderr)), "w");
+            // Save original stdout and stderr
+            stdout_backup = fdopen(dup(fileno(stdout)), "w");
+            stderr_backup = fdopen(dup(fileno(stderr)), "w");
 
-    freopen(output_file, "w", stdout);
-    freopen(error_file, "w", stderr);
-}
+            freopen(output_file, "w", stdout);
+            freopen(error_file, "w", stderr);
+        }
 
+        // END OF PART ONE OF THE REDIRECTION ADDITION
 
         // Tokenize input into arguments
         char *args[MAX_INPUT / 2 + 1]; // Enough for simple tokenization
         int arg_count = 0;
         char *token = strtok(input, " ");
-        while (token != NULL && arg_count < (MAX_INPUT / 2)) {
+        while (token != NULL && arg_count < (MAX_INPUT / 2))
+        {
             args[arg_count++] = token;
             token = strtok(NULL, " ");
         }
         args[arg_count] = NULL;
 
-        if (arg_count > 0) {
+        if (arg_count > 0)
+        {
             commandInput(arg_count, args);
-            if (filename != NULL) {
-    fflush(stdout);
-    fflush(stderr);
-    // Restore stdout and stderr
-    dup2(fileno(stdout_backup), fileno(stdout));
-    dup2(fileno(stderr_backup), fileno(stderr));
-    fclose(stdout_backup);
-    fclose(stderr_backup);
-}
 
+            // ADDED PART FOR REDIRECTION
+            if (filename != NULL)
+            {
+                fflush(stdout);
+                fflush(stderr);
+                // Restore stdout and stderr
+                dup2(fileno(stdout_backup), fileno(stdout));
+                dup2(fileno(stderr_backup), fileno(stderr));
+                fclose(stdout_backup);
+                fclose(stderr_backup);
+            }
         }
     }
 
