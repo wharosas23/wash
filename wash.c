@@ -80,6 +80,40 @@ void commandInput(int argc, char *argv[])
     }
 }
 
+int handle_redirection(char *input, char **filename, FILE **stdout_backup, FILE **stderr_backup) {
+    char *redir_ptr = strchr(input, '>'); // Look for >
+
+    *filename = NULL;
+
+    if (redir_ptr != NULL) {
+        *redir_ptr = '\0'; // Terminate command part
+        redir_ptr++;
+
+        while (*redir_ptr == ' ') redir_ptr++; // Skip spaces
+
+        if (*redir_ptr == '\0') {
+            fprintf(stderr, "wash: missing filename after '>'\n");
+            return 0;
+        }
+
+        *filename = redir_ptr;
+
+        char output_file[512], error_file[512];
+        snprintf(output_file, sizeof(output_file), "%s.output", *filename);
+        snprintf(error_file, sizeof(error_file), "%s.error", *filename);
+
+        *stdout_backup = fdopen(dup(fileno(stdout)), "w");
+        *stderr_backup = fdopen(dup(fileno(stderr)), "w");
+
+        if (!freopen(output_file, "w", stdout) || !freopen(error_file, "w", stderr)) {
+            fprintf(stderr, "wash: failed to redirect output\n");
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 // Main function that handles the shell loop
 int main(int argc, char *argv[])
 {
@@ -116,70 +150,33 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-        //ADDITION FOR REDIRECTION 
-        char *redir_ptr = strchr(input, '>'); // Look for >
-
-        char *command_part = input;
+// Handle redirection (if any)
         char *filename = NULL;
-
-        if (redir_ptr != NULL)
-        {
-            *redir_ptr = '\0'; // Split string at >
-            redir_ptr++;
-
-            // Skip any leading spaces before filename
-            while (*redir_ptr == ' ')
-                redir_ptr++;
-
-            if (*redir_ptr == '\0')
-            {
-                fprintf(stderr, "wash: missing filename after '>'\n");
-                continue;
-            }
-
-            filename = redir_ptr;
-        }
         FILE *stdout_backup = NULL;
         FILE *stderr_backup = NULL;
 
-        if (filename != NULL)
-        {
-            char output_file[512];
-            char error_file[512];
-            snprintf(output_file, sizeof(output_file), "%s.output", filename);
-            snprintf(error_file, sizeof(error_file), "%s.error", filename);
-
-            // Save original stdout and stderr
-            stdout_backup = fdopen(dup(fileno(stdout)), "w");
-            stderr_backup = fdopen(dup(fileno(stderr)), "w");
-
-            freopen(output_file, "w", stdout);
-            freopen(error_file, "w", stderr);
+        if (!handle_redirection(input, &filename, &stdout_backup, &stderr_backup)) {
+            continue; // Skip on bad redirection
         }
 
-        // END OF PART ONE OF THE REDIRECTION ADDITION
-
-        // Tokenize input into arguments
-        char *args[MAX_INPUT / 2 + 1]; // Enough for simple tokenization
+        // Tokenize the command part of input
+        char *args[MAX_INPUT / 2 + 1];
         int arg_count = 0;
         char *token = strtok(input, " ");
-        while (token != NULL && arg_count < (MAX_INPUT / 2))
-        {
+        while (token != NULL && arg_count < (MAX_INPUT / 2)) {
             args[arg_count++] = token;
             token = strtok(NULL, " ");
         }
         args[arg_count] = NULL;
 
-        if (arg_count > 0)
-        {
+        // Execute command
+        if (arg_count > 0) {
             commandInput(arg_count, args);
 
-            // ADDED PART FOR REDIRECTION
-            if (filename != NULL)
-            {
+            // Restore original stdout/stderr if redirected
+            if (filename != NULL) {
                 fflush(stdout);
                 fflush(stderr);
-                // Restore stdout and stderr
                 dup2(fileno(stdout_backup), fileno(stdout));
                 dup2(fileno(stderr_backup), fileno(stderr));
                 fclose(stdout_backup);
@@ -189,4 +186,5 @@ int main(int argc, char *argv[])
     }
 
     return 0;
+
 }
