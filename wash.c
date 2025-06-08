@@ -30,6 +30,10 @@ void commandInput(int argc, char *argv[])
     }
     else if (strcmp(argv[0], "pwd") == 0)
     {
+        if (argc > 1) {
+        fprintf(stderr, "wash: pwd does not take any arguments\n");
+        return;
+    }
         char cwd[1024];
         if (getcwd(cwd, sizeof(cwd)) != NULL)
         {
@@ -72,6 +76,11 @@ void commandInput(int argc, char *argv[])
     }
     else if (strcmp(argv[0], "help") == 0)
     {
+        if (argc > 1) {
+        fprintf(stderr, "wash: help does not take any arguments\n");
+        return;
+    }
+
         print_help();
     }
     else
